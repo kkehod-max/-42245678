@@ -69,60 +69,102 @@ end)
 
 repeat task.wait() until not CoreGui:FindFirstChild("PigHubLoad")
 
--- ========== KEY SYSTEM (GitHub Whitelist) ==========
+-- ========== KEY SYSTEM ==========
 local GITHUB_RAW = "https://raw.githubusercontent.com/kkehod-max/-42245678/refs/heads/main/keys.json"
-local ADMIN_KEY   = "PIGHUB4/2/55"
-local SAVE_FILE   = "pighub_session.txt"
-
+local ADMIN_KEY  = "PIGHUB4/2/55"
+local SAVE_FILE  = "pighub_session.txt"
 local HttpService = game:GetService("HttpService")
 
--- ดึง HWID เครื่อง
+local _keyType    = "unknown"
+local _keyExpires = nil
+local _activeKey  = ""
+local _keyInfoLabel = nil
+
 local function getHWID()
     local id = "UNKNOWN"
-    pcall(function()
-        id = tostring(game:GetService("RbxAnalyticsService"):GetClientId())
-    end)
+    pcall(function() id = tostring(game:GetService("RbxAnalyticsService"):GetClientId()) end)
     if id == "UNKNOWN" or id == "" then
         id = tostring(game:GetService("Players").LocalPlayer.UserId)
     end
     return id
 end
 
--- อ่าน/เขียน session ที่บันทึกไว้
 local function readSession()
     local ok, v = pcall(readfile, SAVE_FILE)
-    if ok and v and v ~= "" then return v end
+    if ok and v and v ~= "" then
+        local jok, d = pcall(HttpService.JSONDecode, HttpService, v)
+        if jok and d then return d end
+    end
     return nil
 end
-local function writeSession(key)
-    pcall(writefile, SAVE_FILE, key)
+
+local function writeSession(t)
+    pcall(writefile, SAVE_FILE, HttpService:JSONEncode(t))
 end
 
--- ดึง keys.json จาก GitHub
 local function fetchKeys()
-    local ok, raw = pcall(function()
-        return game:HttpGet(GITHUB_RAW, true)
-    end)
+    local ok, raw = pcall(function() return game:HttpGet(GITHUB_RAW, true) end)
     if not ok or not raw then return nil end
     local jok, data = pcall(HttpService.JSONDecode, HttpService, raw)
     if not jok then return nil end
     return data
 end
 
--- สร้างหน้า Key UI
+local function formatTime(secs)
+    if secs <= 0 then return "หมดเวลา" end
+    local d = math.floor(secs / 86400)
+    local h = math.floor((secs % 86400) / 3600)
+    local m = math.floor((secs % 3600) / 60)
+    local s = secs % 60
+    if d > 0 then return string.format("%d วัน %02d:%02d:%02d", d, h, m, s)
+    else return string.format("%02d:%02d:%02d", h, m, s) end
+end
+
+local function getTypeLabel(t)
+    if t == "1day"      then return "⏰ 1 วัน"
+    elseif t == "1week" then return "📅 1 อาทิตย์"
+    elseif t == "permanent" then return "♾️ ถาวร"
+    elseif t == "admin" then return "👑 ADMIN"
+    else return t end
+end
+
+local function startKeyTimer()
+    task.spawn(function()
+        while true do
+            task.wait(1)
+            if not _keyInfoLabel then break end
+            if _keyExpires == nil then
+                _keyInfoLabel.Text = getTypeLabel(_keyType) .. "  |  ไม่มีวันหมดอายุ"
+                _keyInfoLabel.TextColor3 = Color3.fromRGB(80,255,160)
+            else
+                local remaining = _keyExpires - os.time()
+                if remaining <= 0 then
+                    _keyInfoLabel.Text = "❌ คีย์หมดอายุแล้ว"
+                    _keyInfoLabel.TextColor3 = Color3.fromRGB(255,80,80)
+                    task.wait(3)
+                    game:GetService("Players").LocalPlayer:Kick("คีย์ PIG HUB หมดอายุแล้ว กรุณาซื้อใหม่")
+                    break
+                else
+                    _keyInfoLabel.Text = getTypeLabel(_keyType) .. "  |  หมดใน " .. formatTime(remaining)
+                    _keyInfoLabel.TextColor3 = remaining < 3600 and Color3.fromRGB(255,150,50) or Color3.fromRGB(180,255,180)
+                end
+            end
+        end
+    end)
+end
+
 local function showKeyScreen(onSuccess)
     local KeyGui = Instance.new("ScreenGui")
-    KeyGui.Name      = "PigHubKeyScreen"
+    KeyGui.Name = "PigHubKeyScreen"
     KeyGui.ResetOnSpawn = false
     KeyGui.DisplayOrder = 9999
     KeyGui.IgnoreGuiInset = true
-    KeyGui.Parent    = game:GetService("CoreGui")
+    KeyGui.Parent = game:GetService("CoreGui")
 
-    -- พื้นหลัง
     local BG = Instance.new("Frame", KeyGui)
     BG.Size = UDim2.new(1,0,1,0)
     BG.BackgroundColor3 = Color3.fromRGB(10,8,18)
-    BG.BorderSizePixel  = 0
+    BG.BorderSizePixel = 0
     local BGGrad = Instance.new("UIGradient", BG)
     BGGrad.Color = ColorSequence.new({
         ColorSequenceKeypoint.new(0, Color3.fromRGB(22,5,28)),
@@ -130,49 +172,52 @@ local function showKeyScreen(onSuccess)
     })
     BGGrad.Rotation = 135
 
-    -- โลโก้
     local Logo = Instance.new("ImageLabel", BG)
     Logo.Size = UDim2.new(0,110,0,110)
-    Logo.Position = UDim2.new(0.5,-55,0.5,-230)
+    Logo.Position = UDim2.new(0.5,-55,0.5,-240)
     Logo.BackgroundTransparency = 1
     Logo.Image = "rbxassetid://117924028123190"
 
-    -- ชื่อ
     local Title = Instance.new("TextLabel", BG)
     Title.Size = UDim2.new(0,280,0,48)
-    Title.Position = UDim2.new(0.5,-140,0.5,-105)
+    Title.Position = UDim2.new(0.5,-140,0.5,-115)
     Title.BackgroundTransparency = 1
     Title.Text = "PIG HUB"
     Title.TextColor3 = Color3.fromRGB(255,105,180)
     Title.TextScaled = true
     Title.Font = Enum.Font.GothamBold
-    local TitleGrad = Instance.new("UIGradient", Title)
-    TitleGrad.Color = ColorSequence.new({
+    Instance.new("UIGradient", Title).Color = ColorSequence.new({
         ColorSequenceKeypoint.new(0,   Color3.fromRGB(255,182,193)),
         ColorSequenceKeypoint.new(0.5, Color3.fromRGB(255,105,180)),
         ColorSequenceKeypoint.new(1,   Color3.fromRGB(255,182,193)),
     })
 
-    -- subtitle
+    local Price = Instance.new("TextLabel", BG)
+    Price.Size = UDim2.new(0,320,0,24)
+    Price.Position = UDim2.new(0.5,-160,0.5,-58)
+    Price.BackgroundTransparency = 1
+    Price.Text = "⏰ 1วัน=10฿   📅 อาทิตย์=35฿   ♾️ ถาวร=65฿"
+    Price.TextColor3 = Color3.fromRGB(255,220,100)
+    Price.TextScaled = true
+    Price.Font = Enum.Font.Gotham
+
     local Sub = Instance.new("TextLabel", BG)
-    Sub.Size = UDim2.new(0,300,0,28)
-    Sub.Position = UDim2.new(0.5,-150,0.5,-48)
+    Sub.Size = UDim2.new(0,300,0,24)
+    Sub.Position = UDim2.new(0.5,-150,0.5,-28)
     Sub.BackgroundTransparency = 1
     Sub.Text = "Enter your access key"
     Sub.TextColor3 = Color3.fromRGB(180,160,200)
     Sub.TextScaled = true
     Sub.Font = Enum.Font.Gotham
 
-    -- กล่อง input
     local InputFrame = Instance.new("Frame", BG)
     InputFrame.Size = UDim2.new(0,320,0,50)
-    InputFrame.Position = UDim2.new(0.5,-160,0.5,5)
+    InputFrame.Position = UDim2.new(0.5,-160,0.5,10)
     InputFrame.BackgroundColor3 = Color3.fromRGB(22,18,32)
     InputFrame.BorderSizePixel = 0
     Instance.new("UICorner", InputFrame).CornerRadius = UDim.new(0,12)
     local InputStroke = Instance.new("UIStroke", InputFrame)
     InputStroke.Thickness = 2
-    InputStroke.Color = Color3.fromRGB(255,105,180)
 
     local InputBox = Instance.new("TextBox", InputFrame)
     InputBox.Size = UDim2.new(1,-16,1,0)
@@ -187,10 +232,9 @@ local function showKeyScreen(onSuccess)
     InputBox.ClearTextOnFocus = false
     InputBox.BorderSizePixel = 0
 
-    -- ปุ่ม Confirm
     local Btn = Instance.new("TextButton", BG)
     Btn.Size = UDim2.new(0,200,0,44)
-    Btn.Position = UDim2.new(0.5,-100,0.5,70)
+    Btn.Position = UDim2.new(0.5,-100,0.5,75)
     Btn.BackgroundColor3 = Color3.fromRGB(220,60,140)
     Btn.TextColor3 = Color3.fromRGB(255,255,255)
     Btn.Text = "CONFIRM"
@@ -198,23 +242,15 @@ local function showKeyScreen(onSuccess)
     Btn.Font = Enum.Font.GothamBold
     Btn.BorderSizePixel = 0
     Instance.new("UICorner", Btn).CornerRadius = UDim.new(0,14)
-    local BtnGrad = Instance.new("UIGradient", Btn)
-    BtnGrad.Color = ColorSequence.new({
-        ColorSequenceKeypoint.new(0,   Color3.fromRGB(255,80,160)),
-        ColorSequenceKeypoint.new(1,   Color3.fromRGB(180,40,120)),
-    })
-    BtnGrad.Rotation = 90
 
-    -- สถานะ
     local Status = Instance.new("TextLabel", BG)
     Status.Size = UDim2.new(0,320,0,30)
-    Status.Position = UDim2.new(0.5,-160,0.5,125)
+    Status.Position = UDim2.new(0.5,-160,0.5,130)
     Status.BackgroundTransparency = 1
     Status.Text = ""
     Status.TextScaled = true
     Status.Font = Enum.Font.Gotham
 
-    -- ไล่สี stroke
     task.spawn(function()
         local t = 0
         while KeyGui and KeyGui.Parent do
@@ -224,7 +260,6 @@ local function showKeyScreen(onSuccess)
         end
     end)
 
-    -- กดปุ่ม
     Btn.MouseButton1Click:Connect(function()
         local key = InputBox.Text:gsub("%s+","")
         if key == "" then
@@ -232,100 +267,99 @@ local function showKeyScreen(onSuccess)
             Status.TextColor3 = Color3.fromRGB(255,200,50)
             return
         end
-
         Status.Text = "⏳ กำลังตรวจสอบ..."
         Status.TextColor3 = Color3.fromRGB(180,180,255)
-
         task.spawn(function()
-            -- admin ผ่านได้เลย
             if key == ADMIN_KEY then
-                writeSession(key)
-                Status.Text = "✅ ADMIN — ยินดีต้อนรับ"
+                _activeKey = key _keyType = "admin" _keyExpires = nil
+                writeSession({key=key, type="admin", expires=nil, hwid=getHWID()})
+                Status.Text = "✅ ADMIN 👑"
                 Status.TextColor3 = Color3.fromRGB(80,255,160)
-                task.wait(0.8)
-                KeyGui:Destroy()
-                onSuccess(true)
-                return
+                task.wait(0.8) KeyGui:Destroy() onSuccess(true) return
             end
-
             local data = fetchKeys()
             if not data then
-                Status.Text = "❌ ไม่สามารถเชื่อมต่อ GitHub ได้"
-                Status.TextColor3 = Color3.fromRGB(255,80,80)
-                return
+                Status.Text = "❌ ไม่สามารถเชื่อมต่อได้"
+                Status.TextColor3 = Color3.fromRGB(255,80,80) return
             end
-
             local entry = data[key]
             if not entry then
                 Status.Text = "❌ คีย์ไม่ถูกต้อง"
-                Status.TextColor3 = Color3.fromRGB(255,80,80)
-                return
+                Status.TextColor3 = Color3.fromRGB(255,80,80) return
             end
-
             if not entry.active then
-                Status.Text = "❌ คีย์นี้ถูกยกเลิกแล้ว"
-                Status.TextColor3 = Color3.fromRGB(255,80,80)
-                return
+                Status.Text = "❌ คีย์ถูกยกเลิกแล้ว"
+                Status.TextColor3 = Color3.fromRGB(255,80,80) return
             end
-
             local hwid = getHWID()
-            local lockedHWID = entry.hwid
-
-            if lockedHWID and lockedHWID ~= "" and lockedHWID ~= "null" and lockedHWID ~= hwid then
+            local locked = tostring(entry.hwid or "")
+            if locked ~= "" and locked ~= "null" and locked ~= hwid then
                 Status.Text = "❌ คีย์นี้ผูกกับเครื่องอื่นแล้ว"
-                Status.TextColor3 = Color3.fromRGB(255,80,80)
-                return
+                Status.TextColor3 = Color3.fromRGB(255,80,80) return
             end
-
-            -- ผ่าน — บันทึก session
-            writeSession(key)
-            Status.Text = "✅ คีย์ถูกต้อง! กำลังโหลด..."
+            local keyType = tostring(entry.type or "permanent")
+            local duration = tonumber(entry.duration) or -1
+            local expiresAt = nil
+            local saved = readSession()
+            if saved and saved.key == key and saved.expires then
+                expiresAt = saved.expires
+            elseif duration > 0 then
+                expiresAt = os.time() + duration
+            end
+            if expiresAt and os.time() > expiresAt then
+                Status.Text = "❌ คีย์หมดอายุแล้ว"
+                Status.TextColor3 = Color3.fromRGB(255,80,80) return
+            end
+            _activeKey = key _keyType = keyType _keyExpires = expiresAt
+            writeSession({key=key, type=keyType, expires=expiresAt, hwid=hwid})
+            Status.Text = "✅ " .. getTypeLabel(keyType) .. " — กำลังโหลด..."
             Status.TextColor3 = Color3.fromRGB(80,255,160)
-            task.wait(0.8)
-            KeyGui:Destroy()
-            onSuccess(false)
+            task.wait(0.8) KeyGui:Destroy() onSuccess(false)
         end)
     end)
 end
 
--- เริ่มตรวจสอบ
 local _passed = false
 local _isAdmin = false
 
-local savedKey = readSession()
-if savedKey == ADMIN_KEY then
-    _passed  = true
-    _isAdmin = true
-elseif savedKey and savedKey ~= "" then
-    -- ตรวจ session กับ GitHub
-    task.spawn(function()
-        local data = fetchKeys()
-        if data then
-            local entry = data[savedKey]
-            if entry and entry.active then
-                local hwid = getHWID()
-                local locked = entry.hwid
-                if not locked or locked == "" or locked == "null" or locked == hwid then
-                    _passed  = true
-                    _isAdmin = false
-                    return
+local session = readSession()
+if session and session.key then
+    if session.key == ADMIN_KEY then
+        _passed = true _isAdmin = true
+        _activeKey = ADMIN_KEY _keyType = "admin" _keyExpires = nil
+    else
+        task.spawn(function()
+            local data = fetchKeys()
+            local valid = false
+            if data then
+                local entry = data[session.key]
+                if entry and entry.active then
+                    local hwid = getHWID()
+                    local locked = tostring(entry.hwid or "")
+                    if locked == "" or locked == "null" or locked == hwid then
+                        local exp = session.expires
+                        if not exp or os.time() <= exp then
+                            _activeKey = session.key
+                            _keyType = session.type or "permanent"
+                            _keyExpires = exp
+                            valid = true
+                        end
+                    end
                 end
             end
-        end
-        -- session ไม่ valid ให้แสดงหน้าใส่คีย์
-        showKeyScreen(function(isAdmin)
-            _passed  = true
-            _isAdmin = isAdmin
+            if valid then
+                _passed = true _isAdmin = false
+            else
+                showKeyScreen(function(isAdmin) _passed = true _isAdmin = isAdmin end)
+            end
         end)
-    end)
+    end
 else
-    showKeyScreen(function(isAdmin)
-        _passed  = true
-        _isAdmin = isAdmin
-    end)
+    showKeyScreen(function(isAdmin) _passed = true _isAdmin = isAdmin end)
 end
 
 repeat task.wait(0.05) until _passed
+
 
 
 
@@ -468,6 +502,53 @@ UserInputService.InputBegan:Connect(function(i, gp)
     if not gp and i.KeyCode == Enum.KeyCode.T then 
         ToggleUI() 
     end 
+end)
+
+-- Key info label ใน CoreGui (แสดงเวลาคีย์)
+task.spawn(function()
+    task.wait(1)
+    local KeyInfoGui = Instance.new("ScreenGui", game:GetService("CoreGui"))
+    KeyInfoGui.Name = "PigHubKeyInfo"
+    KeyInfoGui.ResetOnSpawn = false
+    KeyInfoGui.DisplayOrder = 100
+
+    -- Frame หลัก เล็กๆ ลากได้
+    local KeyInfoFrame = Instance.new("Frame", KeyInfoGui)
+    KeyInfoFrame.Size = UDim2.new(0, 160, 0, 22)
+    KeyInfoFrame.Position = UDim2.new(0, 10, 0, 10)
+    KeyInfoFrame.BackgroundColor3 = Color3.fromRGB(12, 8, 20)
+    KeyInfoFrame.BackgroundTransparency = 0.2
+    KeyInfoFrame.BorderSizePixel = 0
+    KeyInfoFrame.Active = true
+    KeyInfoFrame.Draggable = true
+    Instance.new("UICorner", KeyInfoFrame).CornerRadius = UDim.new(0, 6)
+    local Stroke = Instance.new("UIStroke", KeyInfoFrame)
+    Stroke.Thickness = 1
+    Stroke.Color = Color3.fromRGB(255, 105, 180)
+
+    -- label แสดงเวลา
+    _keyInfoLabel = Instance.new("TextLabel", KeyInfoFrame)
+    _keyInfoLabel.Size = UDim2.new(1, -8, 1, 0)
+    _keyInfoLabel.Position = UDim2.new(0, 4, 0, 0)
+    _keyInfoLabel.BackgroundTransparency = 1
+    _keyInfoLabel.TextScaled = true
+    _keyInfoLabel.Font = Enum.Font.GothamBold
+    _keyInfoLabel.Text = getTypeLabel(_keyType) .. " ..."
+    _keyInfoLabel.TextColor3 = Color3.fromRGB(180, 255, 180)
+
+
+
+    startKeyTimer()
+
+    -- ไล่สี stroke
+    task.spawn(function()
+        local t = 0
+        while KeyInfoGui and KeyInfoGui.Parent do
+            t = t + 0.01
+            Stroke.Color = Color3.fromHSV(t % 1, 0.6, 1)
+            task.wait(0.05)
+        end
+    end)
 end)
 
 -- ========== ระบบพื้นฐาน ==========
@@ -2366,6 +2447,23 @@ end)
 
 
 -- ========== CUSTOM TAB ==========
+CustomTab:Section({Title = "KEY INFO"})
+
+local _keyInfoVisible = true
+CustomTab:Toggle({
+    Title = "แสดงเวลาคีย์",
+    Desc = "เปิด/ปิดแถบแสดงเวลาคีย์",
+    Default = true,
+    Callback = function(v)
+        _keyInfoVisible = v
+        task.spawn(function()
+            local cg = game:GetService("CoreGui")
+            local gui = cg:FindFirstChild("PigHubKeyInfo")
+            if gui then gui.Enabled = v end
+        end)
+    end
+})
+
 CustomTab:Section({Title = "FPS BOOSTER"})
 
 local FPSBoosterToggle = CustomTab:Toggle({
