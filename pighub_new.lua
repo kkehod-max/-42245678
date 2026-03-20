@@ -156,32 +156,8 @@ local Window = WindUI:CreateWindow({
     HideSearchBar = true,
     ScrollBarEnabled = false,
     AccentColor = Color3.fromRGB(255, 105, 180),
-    User = {
-        Enabled = true,
-        Name = LocalPlayer.Name,
-        Image = "rbxthumb://type=AvatarHeadShot&id=" .. LocalPlayer.UserId
-    }
+    User = {Enabled = false}
 })
-
-local function applyPinkTheme()
-    pcall(function()
-        if Window and Window.SideBar then
-            Window.SideBar.BackgroundColor3 = Color3.fromRGB(255, 240, 245)
-        end
-    end)
-end
-task.spawn(applyPinkTheme)
-
-local ScreenGui = Instance.new("ScreenGui", game:GetService("CoreGui"))
-ScreenGui.Name = "WindUI_Toggle"
-ScreenGui.ResetOnSpawn = false
-local ToggleBtn = Instance.new("ImageButton", ScreenGui)
-ToggleBtn.Size = UDim2.new(0,50,0,50)
-ToggleBtn.Position = UDim2.new(0,20,0.5,-25)
-ToggleBtn.BackgroundTransparency = 1
-ToggleBtn.Image = "rbxassetid://120437295686483"
-ToggleBtn.Active = true
-ToggleBtn.Draggable = true
 
 local function ToggleUI()
     if Window.Toggle then 
@@ -190,7 +166,6 @@ local function ToggleUI()
         Window.UI.Enabled = not Window.UI.Enabled 
     end
 end
-ToggleBtn.MouseButton1Click:Connect(ToggleUI)
 UserInputService.InputBegan:Connect(function(i, gp) 
     if not gp and i.KeyCode == Enum.KeyCode.T then 
         ToggleUI() 
