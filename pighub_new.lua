@@ -577,9 +577,10 @@ if LocalPlayer.Character then
     setupWalkSpeed(LocalPlayer.Character)
 end
 
--- ========== ระบบ ANTI LOOK ==========
+-- ========== ระบบ ANTI LOOK (แบบ god2) ==========
 getgenv().AntiLookEnabled = false
-getgenv().AntiLookStrength = 12
+getgenv().SkyAmount = 1500
+
 local AntiLookConnection = nil
 
 local function setupAntiLook()
@@ -587,34 +588,19 @@ local function setupAntiLook()
 
     AntiLookConnection = RunService.Heartbeat:Connect(function()
         if not getgenv().AntiLookEnabled then return end
-        local char = LocalPlayer.Character
-        if not char then return end
-        local hrp = char:FindFirstChild("HumanoidRootPart")
-        local head = char:FindFirstChild("Head")
-        if not hrp or not head then return end
+        if not LocalPlayer.Character then return end
+        local Root = LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+        if not Root then return end
 
-        -- บันทึก CFrame จริง
-        local realHRPCF  = hrp.CFrame
-        local realHeadCF = head.CFrame
+        local originalVel = Root.Velocity
+        local angle = math.rad(tick() * 1500 % 360)
+        local x = math.cos(angle) * getgenv().SkyAmount
+        local z = math.sin(angle) * getgenv().SkyAmount
+        local yVel = math.random(280, 480)
 
-        -- คำนวณตำแหน่งหลอก — สุ่มทิศทางรอบตัว
-        local str = getgenv().AntiLookStrength
-        local angle = math.rad(tick() * 800 % 360)
-        local fakeOffset = Vector3.new(
-            math.cos(angle) * str,
-            math.random(-3, 3),
-            math.sin(angle) * str
-        )
-
-        -- ย้าย HRP และ Head ไปตำแหน่งหลอก
-        pcall(function() hrp.CFrame  = realHRPCF  + fakeOffset end)
-        pcall(function() head.CFrame = realHeadCF + fakeOffset end)
-
-        -- รอ 1 frame แล้วดึงกลับ
+        Root.Velocity = Vector3.new(x, yVel, z)
         RunService.RenderStepped:Wait()
-
-        pcall(function() hrp.CFrame  = realHRPCF end)
-        pcall(function() head.CFrame = realHeadCF end)
+        Root.Velocity = originalVel
     end)
 end
 
@@ -627,17 +613,6 @@ local function toggleAntiLook(state)
             AntiLookConnection:Disconnect()
             AntiLookConnection = nil
         end
-        -- คืน head กลับตำแหน่งจริงถ้าหลุด
-        pcall(function()
-            local char = LocalPlayer.Character
-            if char then
-                local hrp  = char:FindFirstChild("HumanoidRootPart")
-                local head = char:FindFirstChild("Head")
-                if hrp and head then
-                    head.CFrame = hrp.CFrame * CFrame.new(0, 1.5, 0)
-                end
-            end
-        end)
     end
 end
 
@@ -2008,15 +1983,11 @@ local AntiLookToggle = PlayerTab:Toggle({
 
 PlayerTab:Slider({
     Title = "Strength",
-    Desc = "ระยะหลอกตำแหน่ง (ค่ายิ่งมาก ยิ่งไกล)",
-    Step = 1,
-    Value = {
-        Min = 1,
-        Max = 30,
-        Default = 12
-    },
+    Desc = "ความแรง (500-3000)",
+    Step = 100,
+    Value = {Min = 500, Max = 3000, Default = 1500},
     Callback = function(value)
-        getgenv().AntiLookStrength = value
+        getgenv().SkyAmount = value
     end
 })
 
