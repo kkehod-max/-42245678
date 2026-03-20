@@ -313,36 +313,46 @@ end
 local _ktype, _kexp = "?", nil
 local _done = false
 
-local function _startCheck()
-    local s = _load()
-    if s and s.key then
-        if s.key == "PIGHUB4/2/55" then
-            _ktype = "admin" _kexp = nil _done = true return
-        end
-        local data = _fetch()
-        if data then
-            local entry = data[_xor(s.key)]
-            if entry and entry.active then
-                local hwid = _getHWID()
-                local locked = tostring(entry.hwid or "")
-                if locked == "" or locked == "null" or locked == hwid then
-                    local exp = s.expires
-                    if not exp or os.time() <= exp then
-                        _ktype = s.type or "permanent"
-                        _kexp  = exp
-                        _done  = true
-                        return
+
+
+-- ตรวจ session ก่อน ถ้าไม่มีค่อยแสดง key screen
+local s = _load()
+if s and s.key then
+    if s.key == "PIGHUB4/2/55" then
+        _ktype = "admin" _kexp = nil _done = true
+    else
+        -- ตรวจกับ GitHub ใน task.spawn
+        task.spawn(function()
+            local ok, data = pcall(_fetch)
+            if ok and data then
+                local entry = data[_xor(s.key)]
+                if entry and entry.active then
+                    local hwid = _getHWID()
+                    local locked = tostring(entry.hwid or "")
+                    if locked == "" or locked == "null" or locked == hwid then
+                        local exp = s.expires
+                        if not exp or os.time() <= exp then
+                            _ktype = s.type or "permanent"
+                            _kexp  = exp
+                            _done  = true
+                            return
+                        end
                     end
                 end
             end
-        end
+            -- session ไม่ valid แสดงหน้าคีย์
+            _showKey(function(t, e)
+                _ktype = t _kexp = e _done = true
+            end)
+        end)
     end
+else
+    -- ไม่มี session แสดงหน้าคีย์เลย
     _showKey(function(t, e)
         _ktype = t _kexp = e _done = true
     end)
 end
 
-task.spawn(_startCheck)
 repeat task.wait(0.05) until _done
 
 -- แสดงแถบเวลาคีย์เล็กๆ
