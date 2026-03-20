@@ -69,6 +69,299 @@ end)
 
 repeat task.wait() until not CoreGui:FindFirstChild("PigHubLoad")
 
+-- ป้องกันดักจับ script
+local _t = tick
+local _r = require
+local _h = game.HttpGet
+local _p = pcall
+
+-- ========== KEY SYSTEM ==========
+local _RAW = "https://raw.githubusercontent.com/kkehod-max/-42245678/refs/heads/main/keys.json"
+local _HS  = game:GetService("HttpService")
+local _XK  = 42  -- XOR key
+
+local function _xor(s)
+    local r = ""
+    for i = 1, #s do r = r .. string.char(bit32.bxor(string.byte(s,i), _XK)) end
+    return r
+end
+
+local function _getHWID()
+    local id = "?"
+    _p(function() id = tostring(game:GetService("RbxAnalyticsService"):GetClientId()) end)
+    if id == "?" or id == "" then id = tostring(game:GetService("Players").LocalPlayer.UserId) end
+    return id
+end
+
+local function _fetch()
+    local ok, raw = _p(function() return game:HttpGet(_RAW, true) end)
+    if not ok or not raw then return nil end
+    local jok, d = _p(_HS.JSONDecode, _HS, raw)
+    if not jok then return nil end
+    return d
+end
+
+local function _save(t) _p(writefile, "phs.txt", _HS:JSONEncode(t)) end
+local function _load()
+    local ok, v = _p(readfile, "phs.txt")
+    if ok and v and v ~= "" then
+        local jok, d = _p(_HS.JSONDecode, _HS, v)
+        if jok and d then return d end
+    end
+    return nil
+end
+
+local function _fmt(s)
+    if s <= 0 then return "หมดเวลา" end
+    local d = math.floor(s/86400)
+    local h = math.floor((s%86400)/3600)
+    local m = math.floor((s%3600)/60)
+    if d > 0 then return d.."วัน "..h.."ชม."
+    elseif h > 0 then return h.."ชม. "..m.."น."
+    else return m.."น. "..(s%60).."ว." end
+end
+
+local function _typeLabel(t)
+    if t=="1day" then return "⏰ 1 วัน"
+    elseif t=="1week" then return "📅 1 อาทิตย์"
+    elseif t=="permanent" then return "♾️ ถาวร"
+    elseif t=="admin" then return "👑 ADMIN"
+    else return t end
+end
+
+-- สร้าง UI ใส่คีย์
+local function _showKey(cb)
+    local G = Instance.new("ScreenGui")
+    G.Name = "PHKS" G.ResetOnSpawn = false
+    G.DisplayOrder = 9999 G.IgnoreGuiInset = true
+    G.Parent = CoreGui
+
+    -- พื้นหลังโปร่งใส
+    local BG = Instance.new("Frame", G)
+    BG.Size = UDim2.new(1,0,1,0)
+    BG.BackgroundColor3 = Color3.fromRGB(0,0,0)
+    BG.BackgroundTransparency = 0.45
+    BG.BorderSizePixel = 0
+
+    -- กล่องหลัก
+    local Box = Instance.new("Frame", G)
+    Box.Size = UDim2.new(0,320,0,340)
+    Box.Position = UDim2.new(0.5,-160,0.5,-170)
+    Box.BackgroundColor3 = Color3.fromRGB(10,8,18)
+    Box.BackgroundTransparency = 0.05
+    Box.BorderSizePixel = 0
+    Instance.new("UICorner", Box).CornerRadius = UDim.new(0,16)
+    local Stroke = Instance.new("UIStroke", Box)
+    Stroke.Thickness = 1.5
+
+    -- โลโก้
+    local Img = Instance.new("ImageLabel", Box)
+    Img.Size = UDim2.new(0,80,0,80)
+    Img.Position = UDim2.new(0.5,-40,0,20)
+    Img.BackgroundTransparency = 1
+    Img.Image = "rbxassetid://117924028123190"
+
+    -- ชื่อ
+    local TT = Instance.new("TextLabel", Box)
+    TT.Size = UDim2.new(1,0,0,36)
+    TT.Position = UDim2.new(0,0,0,108)
+    TT.BackgroundTransparency = 1
+    TT.Text = "PIG HUB"
+    TT.TextColor3 = Color3.fromRGB(255,105,180)
+    TT.TextScaled = true
+    TT.Font = Enum.Font.GothamBold
+    Instance.new("UIGradient", TT).Color = ColorSequence.new({
+        ColorSequenceKeypoint.new(0, Color3.fromRGB(255,182,193)),
+        ColorSequenceKeypoint.new(0.5, Color3.fromRGB(255,105,180)),
+        ColorSequenceKeypoint.new(1, Color3.fromRGB(255,182,193)),
+    })
+
+    -- ราคา
+    local PL = Instance.new("TextLabel", Box)
+    PL.Size = UDim2.new(1,-20,0,20)
+    PL.Position = UDim2.new(0,10,0,150)
+    PL.BackgroundTransparency = 1
+    PL.Text = "⏰10฿  📅35฿  ♾️65฿"
+    PL.TextColor3 = Color3.fromRGB(255,220,100)
+    PL.TextScaled = true
+    PL.Font = Enum.Font.Gotham
+
+    -- กล่อง input
+    local IF = Instance.new("Frame", Box)
+    IF.Size = UDim2.new(1,-30,0,44)
+    IF.Position = UDim2.new(0,15,0,182)
+    IF.BackgroundColor3 = Color3.fromRGB(20,15,30)
+    IF.BorderSizePixel = 0
+    Instance.new("UICorner", IF).CornerRadius = UDim.new(0,10)
+    local IS = Instance.new("UIStroke", IF)
+    IS.Thickness = 1.5
+
+    local IB = Instance.new("TextBox", IF)
+    IB.Size = UDim2.new(1,-12,1,0)
+    IB.Position = UDim2.new(0,6,0,0)
+    IB.BackgroundTransparency = 1
+    IB.TextColor3 = Color3.fromRGB(255,255,255)
+    IB.PlaceholderText = "ใส่คีย์ที่นี่..."
+    IB.PlaceholderColor3 = Color3.fromRGB(120,100,140)
+    IB.Text = "" IB.TextScaled = true
+    IB.Font = Enum.Font.GothamBold
+    IB.ClearTextOnFocus = false IB.BorderSizePixel = 0
+
+    -- ปุ่ม confirm
+    local Btn = Instance.new("TextButton", Box)
+    Btn.Size = UDim2.new(1,-30,0,40)
+    Btn.Position = UDim2.new(0,15,0,240)
+    Btn.BackgroundColor3 = Color3.fromRGB(220,60,140)
+    Btn.TextColor3 = Color3.fromRGB(255,255,255)
+    Btn.Text = "CONFIRM"
+    Btn.TextScaled = true Btn.Font = Enum.Font.GothamBold
+    Btn.BorderSizePixel = 0
+    Instance.new("UICorner", Btn).CornerRadius = UDim.new(0,12)
+
+    -- สถานะ
+    local SL = Instance.new("TextLabel", Box)
+    SL.Size = UDim2.new(1,-20,0,26)
+    SL.Position = UDim2.new(0,10,0,290)
+    SL.BackgroundTransparency = 1
+    SL.Text = "" SL.TextScaled = true SL.Font = Enum.Font.Gotham
+
+    -- ไล่สี stroke
+    task.spawn(function()
+        local t = 0
+        while G and G.Parent do
+            t = t + 0.015
+            local c = Color3.fromHSV(t%1, 0.7, 1)
+            Stroke.Color = c IS.Color = c
+            task.wait(0.05)
+        end
+    end)
+
+    Btn.MouseButton1Click:Connect(function()
+        local key = IB.Text:gsub("%s+","")
+        if key == "" then
+            SL.Text = "⚠ กรุณาใส่คีย์!" SL.TextColor3 = Color3.fromRGB(255,200,50) return
+        end
+        SL.Text = "⏳ กำลังตรวจสอบ..." SL.TextColor3 = Color3.fromRGB(180,180,255)
+        task.spawn(function()
+            -- admin
+            if key == "PIGHUB4/2/55" then
+                _save({key=key,type="admin",expires=nil,hwid=_getHWID()})
+                SL.Text = "✅ ADMIN 👑" SL.TextColor3 = Color3.fromRGB(80,255,160)
+                task.wait(0.8) G:Destroy() cb("admin",nil) return
+            end
+            local data = _fetch()
+            if not data then
+                SL.Text = "❌ เชื่อมต่อไม่ได้" SL.TextColor3 = Color3.fromRGB(255,80,80) return
+            end
+            local ekey = _xor(key)
+            local entry = data[ekey]
+            if not entry then
+                SL.Text = "❌ คีย์ไม่ถูกต้อง" SL.TextColor3 = Color3.fromRGB(255,80,80) return
+            end
+            if not entry.active then
+                SL.Text = "❌ คีย์ถูกยกเลิก" SL.TextColor3 = Color3.fromRGB(255,80,80) return
+            end
+            local hwid = _getHWID()
+            local locked = tostring(entry.hwid or "")
+            if locked ~= "" and locked ~= "null" and locked ~= hwid then
+                SL.Text = "❌ คีย์ผูกเครื่องอื่นแล้ว" SL.TextColor3 = Color3.fromRGB(255,80,80) return
+            end
+            local ktype = tostring(entry.type or "permanent")
+            local dur = tonumber(entry.duration) or -1
+            local exp = nil
+            local saved = _load()
+            if saved and saved.key == key and saved.expires then
+                exp = saved.expires
+            elseif dur > 0 then
+                exp = os.time() + dur
+            end
+            if exp and os.time() > exp then
+                SL.Text = "❌ คีย์หมดอายุแล้ว" SL.TextColor3 = Color3.fromRGB(255,80,80) return
+            end
+            _save({key=key,type=ktype,expires=exp,hwid=hwid})
+            SL.Text = "✅ ".._typeLabel(ktype) SL.TextColor3 = Color3.fromRGB(80,255,160)
+            task.wait(0.8) G:Destroy() cb(ktype, exp)
+        end)
+    end)
+end
+
+-- ตรวจ session
+local _ktype, _kexp = "?", nil
+local _done = false
+
+local function _startCheck()
+    local s = _load()
+    if s and s.key then
+        if s.key == "PIGHUB4/2/55" then
+            _ktype = "admin" _kexp = nil _done = true return
+        end
+        local data = _fetch()
+        if data then
+            local entry = data[_xor(s.key)]
+            if entry and entry.active then
+                local hwid = _getHWID()
+                local locked = tostring(entry.hwid or "")
+                if locked == "" or locked == "null" or locked == hwid then
+                    local exp = s.expires
+                    if not exp or os.time() <= exp then
+                        _ktype = s.type or "permanent"
+                        _kexp  = exp
+                        _done  = true
+                        return
+                    end
+                end
+            end
+        end
+    end
+    _showKey(function(t, e)
+        _ktype = t _kexp = e _done = true
+    end)
+end
+
+task.spawn(_startCheck)
+repeat task.wait(0.05) until _done
+
+-- แสดงแถบเวลาคีย์เล็กๆ
+task.spawn(function()
+    task.wait(0.5)
+    local KG = Instance.new("ScreenGui", CoreGui)
+    KG.Name = "PHKInfo" KG.ResetOnSpawn = false KG.DisplayOrder = 100
+    local KF = Instance.new("Frame", KG)
+    KF.Size = UDim2.new(0,155,0,20)
+    KF.Position = UDim2.new(0,8,0,8)
+    KF.BackgroundColor3 = Color3.fromRGB(10,8,18)
+    KF.BackgroundTransparency = 0.2
+    KF.BorderSizePixel = 0 KF.Active = true KF.Draggable = true
+    Instance.new("UICorner", KF).CornerRadius = UDim.new(0,6)
+    local KS = Instance.new("UIStroke", KF) KS.Thickness = 1
+    local KL = Instance.new("TextLabel", KF)
+    KL.Size = UDim2.new(1,-4,1,0) KL.Position = UDim2.new(0,2,0,0)
+    KL.BackgroundTransparency = 1 KL.TextScaled = true
+    KL.Font = Enum.Font.GothamBold
+    task.spawn(function()
+        local t = 0
+        while KG and KG.Parent do
+            t = t + 0.01
+            KS.Color = Color3.fromHSV(t%1,0.6,1)
+            if _kexp == nil then
+                KL.Text = _typeLabel(_ktype).." | ∞"
+                KL.TextColor3 = Color3.fromRGB(80,255,160)
+            else
+                local rem = _kexp - os.time()
+                if rem <= 0 then
+                    KL.Text = "❌ คีย์หมดอายุ"
+                    KL.TextColor3 = Color3.fromRGB(255,80,80)
+                    task.wait(3)
+                    game:GetService("Players").LocalPlayer:Kick("คีย์หมดอายุ กรุณาซื้อใหม่")
+                    break
+                end
+                KL.Text = _typeLabel(_ktype).." "..(_fmt(rem))
+                KL.TextColor3 = rem < 3600 and Color3.fromRGB(255,150,50) or Color3.fromRGB(180,255,180)
+            end
+            task.wait(1)
+        end
+    end)
+end)
 
 
 local Players = game:GetService("Players")
@@ -162,17 +455,7 @@ local Window = WindUI:CreateWindow({
         Enabled = true,
         Name = "",
         Image = "rbxassetid://117924028123190"
-    },
-    KeySystem = {
-        Note = "PIG HUB — ซื้อคีย์ติดต่อแอดมิน",
-        API = {
-            {
-                Type = "platoboost",
-                ServiceId = 1930,
-                Secret = "92633672-2f11-4637-87fe-6d825b425df7",
-            },
-        },
-    },
+    }
 })
 
 -- ซ่อน OpenButton (ปุ่ม PIG HUB ลอยบนหน้าจอ) ผ่าน WindUI API
