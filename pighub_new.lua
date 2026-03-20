@@ -69,6 +69,266 @@ end)
 
 repeat task.wait() until not CoreGui:FindFirstChild("PigHubLoad")
 
+-- ========== KEY SYSTEM (GitHub Whitelist) ==========
+local GITHUB_RAW = "https://raw.githubusercontent.com/kkehod-max/-42245678/refs/heads/main/keys.json"
+local ADMIN_KEY   = "PIGHUB4/2/55"
+local SAVE_FILE   = "pighub_session.txt"
+
+local HttpService = game:GetService("HttpService")
+
+-- ดึง HWID เครื่อง
+local function getHWID()
+    local id = "UNKNOWN"
+    pcall(function()
+        id = tostring(game:GetService("RbxAnalyticsService"):GetClientId())
+    end)
+    if id == "UNKNOWN" or id == "" then
+        id = tostring(game:GetService("Players").LocalPlayer.UserId)
+    end
+    return id
+end
+
+-- อ่าน/เขียน session ที่บันทึกไว้
+local function readSession()
+    local ok, v = pcall(readfile, SAVE_FILE)
+    if ok and v and v ~= "" then return v end
+    return nil
+end
+local function writeSession(key)
+    pcall(writefile, SAVE_FILE, key)
+end
+
+-- ดึง keys.json จาก GitHub
+local function fetchKeys()
+    local ok, raw = pcall(function()
+        return game:HttpGet(GITHUB_RAW, true)
+    end)
+    if not ok or not raw then return nil end
+    local jok, data = pcall(HttpService.JSONDecode, HttpService, raw)
+    if not jok then return nil end
+    return data
+end
+
+-- สร้างหน้า Key UI
+local function showKeyScreen(onSuccess)
+    local KeyGui = Instance.new("ScreenGui")
+    KeyGui.Name      = "PigHubKeyScreen"
+    KeyGui.ResetOnSpawn = false
+    KeyGui.DisplayOrder = 9999
+    KeyGui.IgnoreGuiInset = true
+    KeyGui.Parent    = game:GetService("CoreGui")
+
+    -- พื้นหลัง
+    local BG = Instance.new("Frame", KeyGui)
+    BG.Size = UDim2.new(1,0,1,0)
+    BG.BackgroundColor3 = Color3.fromRGB(10,8,18)
+    BG.BorderSizePixel  = 0
+    local BGGrad = Instance.new("UIGradient", BG)
+    BGGrad.Color = ColorSequence.new({
+        ColorSequenceKeypoint.new(0, Color3.fromRGB(22,5,28)),
+        ColorSequenceKeypoint.new(1, Color3.fromRGB(5,8,28)),
+    })
+    BGGrad.Rotation = 135
+
+    -- โลโก้
+    local Logo = Instance.new("ImageLabel", BG)
+    Logo.Size = UDim2.new(0,110,0,110)
+    Logo.Position = UDim2.new(0.5,-55,0.5,-230)
+    Logo.BackgroundTransparency = 1
+    Logo.Image = "rbxassetid://117924028123190"
+
+    -- ชื่อ
+    local Title = Instance.new("TextLabel", BG)
+    Title.Size = UDim2.new(0,280,0,48)
+    Title.Position = UDim2.new(0.5,-140,0.5,-105)
+    Title.BackgroundTransparency = 1
+    Title.Text = "PIG HUB"
+    Title.TextColor3 = Color3.fromRGB(255,105,180)
+    Title.TextScaled = true
+    Title.Font = Enum.Font.GothamBold
+    local TitleGrad = Instance.new("UIGradient", Title)
+    TitleGrad.Color = ColorSequence.new({
+        ColorSequenceKeypoint.new(0,   Color3.fromRGB(255,182,193)),
+        ColorSequenceKeypoint.new(0.5, Color3.fromRGB(255,105,180)),
+        ColorSequenceKeypoint.new(1,   Color3.fromRGB(255,182,193)),
+    })
+
+    -- subtitle
+    local Sub = Instance.new("TextLabel", BG)
+    Sub.Size = UDim2.new(0,300,0,28)
+    Sub.Position = UDim2.new(0.5,-150,0.5,-48)
+    Sub.BackgroundTransparency = 1
+    Sub.Text = "Enter your access key"
+    Sub.TextColor3 = Color3.fromRGB(180,160,200)
+    Sub.TextScaled = true
+    Sub.Font = Enum.Font.Gotham
+
+    -- กล่อง input
+    local InputFrame = Instance.new("Frame", BG)
+    InputFrame.Size = UDim2.new(0,320,0,50)
+    InputFrame.Position = UDim2.new(0.5,-160,0.5,5)
+    InputFrame.BackgroundColor3 = Color3.fromRGB(22,18,32)
+    InputFrame.BorderSizePixel = 0
+    Instance.new("UICorner", InputFrame).CornerRadius = UDim.new(0,12)
+    local InputStroke = Instance.new("UIStroke", InputFrame)
+    InputStroke.Thickness = 2
+    InputStroke.Color = Color3.fromRGB(255,105,180)
+
+    local InputBox = Instance.new("TextBox", InputFrame)
+    InputBox.Size = UDim2.new(1,-16,1,0)
+    InputBox.Position = UDim2.new(0,8,0,0)
+    InputBox.BackgroundTransparency = 1
+    InputBox.TextColor3 = Color3.fromRGB(255,255,255)
+    InputBox.PlaceholderText = "ใส่คีย์ที่นี่..."
+    InputBox.PlaceholderColor3 = Color3.fromRGB(130,110,150)
+    InputBox.Text = ""
+    InputBox.TextScaled = true
+    InputBox.Font = Enum.Font.GothamBold
+    InputBox.ClearTextOnFocus = false
+    InputBox.BorderSizePixel = 0
+
+    -- ปุ่ม Confirm
+    local Btn = Instance.new("TextButton", BG)
+    Btn.Size = UDim2.new(0,200,0,44)
+    Btn.Position = UDim2.new(0.5,-100,0.5,70)
+    Btn.BackgroundColor3 = Color3.fromRGB(220,60,140)
+    Btn.TextColor3 = Color3.fromRGB(255,255,255)
+    Btn.Text = "CONFIRM"
+    Btn.TextScaled = true
+    Btn.Font = Enum.Font.GothamBold
+    Btn.BorderSizePixel = 0
+    Instance.new("UICorner", Btn).CornerRadius = UDim.new(0,14)
+    local BtnGrad = Instance.new("UIGradient", Btn)
+    BtnGrad.Color = ColorSequence.new({
+        ColorSequenceKeypoint.new(0,   Color3.fromRGB(255,80,160)),
+        ColorSequenceKeypoint.new(1,   Color3.fromRGB(180,40,120)),
+    })
+    BtnGrad.Rotation = 90
+
+    -- สถานะ
+    local Status = Instance.new("TextLabel", BG)
+    Status.Size = UDim2.new(0,320,0,30)
+    Status.Position = UDim2.new(0.5,-160,0.5,125)
+    Status.BackgroundTransparency = 1
+    Status.Text = ""
+    Status.TextScaled = true
+    Status.Font = Enum.Font.Gotham
+
+    -- ไล่สี stroke
+    task.spawn(function()
+        local t = 0
+        while KeyGui and KeyGui.Parent do
+            t = t + 0.015
+            InputStroke.Color = Color3.fromHSV(t % 1, 0.7, 1)
+            task.wait(0.05)
+        end
+    end)
+
+    -- กดปุ่ม
+    Btn.MouseButton1Click:Connect(function()
+        local key = InputBox.Text:gsub("%s+","")
+        if key == "" then
+            Status.Text = "⚠ กรุณาใส่คีย์!"
+            Status.TextColor3 = Color3.fromRGB(255,200,50)
+            return
+        end
+
+        Status.Text = "⏳ กำลังตรวจสอบ..."
+        Status.TextColor3 = Color3.fromRGB(180,180,255)
+
+        task.spawn(function()
+            -- admin ผ่านได้เลย
+            if key == ADMIN_KEY then
+                writeSession(key)
+                Status.Text = "✅ ADMIN — ยินดีต้อนรับ"
+                Status.TextColor3 = Color3.fromRGB(80,255,160)
+                task.wait(0.8)
+                KeyGui:Destroy()
+                onSuccess(true)
+                return
+            end
+
+            local data = fetchKeys()
+            if not data then
+                Status.Text = "❌ ไม่สามารถเชื่อมต่อ GitHub ได้"
+                Status.TextColor3 = Color3.fromRGB(255,80,80)
+                return
+            end
+
+            local entry = data[key]
+            if not entry then
+                Status.Text = "❌ คีย์ไม่ถูกต้อง"
+                Status.TextColor3 = Color3.fromRGB(255,80,80)
+                return
+            end
+
+            if not entry.active then
+                Status.Text = "❌ คีย์นี้ถูกยกเลิกแล้ว"
+                Status.TextColor3 = Color3.fromRGB(255,80,80)
+                return
+            end
+
+            local hwid = getHWID()
+            local lockedHWID = entry.hwid
+
+            if lockedHWID and lockedHWID ~= "" and lockedHWID ~= "null" and lockedHWID ~= hwid then
+                Status.Text = "❌ คีย์นี้ผูกกับเครื่องอื่นแล้ว"
+                Status.TextColor3 = Color3.fromRGB(255,80,80)
+                return
+            end
+
+            -- ผ่าน — บันทึก session
+            writeSession(key)
+            Status.Text = "✅ คีย์ถูกต้อง! กำลังโหลด..."
+            Status.TextColor3 = Color3.fromRGB(80,255,160)
+            task.wait(0.8)
+            KeyGui:Destroy()
+            onSuccess(false)
+        end)
+    end)
+end
+
+-- เริ่มตรวจสอบ
+local _passed = false
+local _isAdmin = false
+
+local savedKey = readSession()
+if savedKey == ADMIN_KEY then
+    _passed  = true
+    _isAdmin = true
+elseif savedKey and savedKey ~= "" then
+    -- ตรวจ session กับ GitHub
+    task.spawn(function()
+        local data = fetchKeys()
+        if data then
+            local entry = data[savedKey]
+            if entry and entry.active then
+                local hwid = getHWID()
+                local locked = entry.hwid
+                if not locked or locked == "" or locked == "null" or locked == hwid then
+                    _passed  = true
+                    _isAdmin = false
+                    return
+                end
+            end
+        end
+        -- session ไม่ valid ให้แสดงหน้าใส่คีย์
+        showKeyScreen(function(isAdmin)
+            _passed  = true
+            _isAdmin = isAdmin
+        end)
+    end)
+else
+    showKeyScreen(function(isAdmin)
+        _passed  = true
+        _isAdmin = isAdmin
+    end)
+end
+
+repeat task.wait(0.05) until _passed
+
+
+
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
