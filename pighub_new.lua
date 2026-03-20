@@ -156,12 +156,52 @@ local Window = WindUI:CreateWindow({
     HideSearchBar = true,
     ScrollBarEnabled = false,
     AccentColor = Color3.fromRGB(255, 105, 180),
-    User = {
-        Enabled = true,
-        Name = "",
-        Image = "rbxassetid://117924028123190"
-    }
+    User = {Enabled = false}
 })
+
+-- ซ่อน OpenButton ของ WindUI (ปุ่ม PIG HUB ที่ลอยบนหน้าจอ)
+pcall(function() Window:EditOpenButton({Enabled = false}) end)
+
+-- ลบ User section (ชื่อ/UserId มุมล่าง UI) — สแกน CoreGui ทุก ScreenGui
+task.spawn(function()
+    task.wait(1)
+    local CoreGui = game:GetService("CoreGui")
+    -- ลบทุก ScreenGui ที่ WindUI สร้าง ที่มี OpenButton
+    for _, gui in ipairs(CoreGui:GetChildren()) do
+        if gui:IsA("ScreenGui") then
+            for _, obj in ipairs(gui:GetDescendants()) do
+                -- ลบ User frame
+                if obj:IsA("Frame") and (obj.Name:lower():find("user") or obj.Name:lower():find("profile")) then
+                    pcall(function() obj.Visible = false obj.Size = UDim2.new(0,0,0,0) end)
+                end
+                -- ลบ OpenButton (ปุ่มที่ลอย)
+                if (obj:IsA("TextButton") or obj:IsA("Frame") or obj:IsA("ImageButton")) 
+                    and obj.Name:lower():find("open") then
+                    pcall(function() obj.Visible = false end)
+                end
+            end
+        end
+    end
+    -- ลบซ้ำด้วย RunService เผื่อ WindUI recreate
+    local conn
+    conn = game:GetService("RunService").Heartbeat:Connect(function()
+        pcall(function()
+            for _, gui in ipairs(CoreGui:GetChildren()) do
+                if gui:IsA("ScreenGui") then
+                    for _, obj in ipairs(gui:GetDescendants()) do
+                        if obj:IsA("Frame") and (obj.Name:lower():find("user") or obj.Name:lower():find("profile")) then
+                            if obj.Visible then obj.Visible = false end
+                        end
+                        if (obj:IsA("TextButton") or obj:IsA("Frame") or obj:IsA("ImageButton"))
+                            and obj.Name:lower():find("open") then
+                            if obj.Visible then obj.Visible = false end
+                        end
+                    end
+                end
+            end
+        end)
+    end)
+end)
 
 local LogoGui = Instance.new("ScreenGui", game:GetService("CoreGui"))
 LogoGui.Name = "PigHub_Logo"
@@ -1660,7 +1700,7 @@ PlayerTab:Section({Title = "ANTI LOOK"})
 
 local AntiLookToggle = PlayerTab:Toggle({
     Title = "Anti Look",
-    Desc = "ป้องกันล็อคเป้า",
+    Desc = "ป้องกันล็อคเป้า (แบบ god2.txt)",
     Default = false,
     Callback = function(state)
         toggleAntiLook(state)
