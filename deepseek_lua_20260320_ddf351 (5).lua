@@ -267,7 +267,7 @@ if LocalPlayer.Character then
     setupWalkSpeed(LocalPlayer.Character)
 end
 
--- ========== ระบบ ANTI LOOK (แบบ god2.txt) ==========
+-- ========== ระบบ ANTI LOOK
 getgenv().AntiLookEnabled = false
 getgenv().AntiLookStrength = 1500
 getgenv().AntiLookSpeed = 1500
@@ -1209,7 +1209,7 @@ PlayerTab:Section({Title = "ANTI LOOK"})
 
 local AntiLookToggle = PlayerTab:Toggle({
     Title = "Anti Look",
-    Desc = "ป้องกันล็อคเป้า (แบบ god2.txt)",
+    Desc = "ป้องกันล็อคเป้า",
     Default = false,
     Callback = function(state)
         toggleAntiLook(state)
