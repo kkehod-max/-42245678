@@ -129,109 +129,133 @@ local function _typeLabel(t)
     else return t end
 end
 
--- สร้าง UI ใส่คีย์
+-- สร้าง UI ใส่คีย์ (Modern Dark)
 local function _showKey(cb)
     local G = Instance.new("ScreenGui")
     G.Name = "PHKS" G.ResetOnSpawn = false
     G.DisplayOrder = 9999 G.IgnoreGuiInset = true
     G.Parent = CoreGui
 
-    -- พื้นหลังโปร่งใส
-    local BG = Instance.new("Frame", G)
-    BG.Size = UDim2.new(1,0,1,0)
-    BG.BackgroundColor3 = Color3.fromRGB(0,0,0)
-    BG.BackgroundTransparency = 0.45
-    BG.BorderSizePixel = 0
+    -- overlay มืดโปร่งใส
+    local OV = Instance.new("Frame", G)
+    OV.Size = UDim2.new(1,0,1,0)
+    OV.BackgroundColor3 = Color3.fromRGB(0,0,0)
+    OV.BackgroundTransparency = 0.5
+    OV.BorderSizePixel = 0
 
-    -- กล่องหลัก
-    local Box = Instance.new("Frame", G)
-    Box.Size = UDim2.new(0,320,0,340)
-    Box.Position = UDim2.new(0.5,-160,0.5,-170)
-    Box.BackgroundColor3 = Color3.fromRGB(10,8,18)
-    Box.BackgroundTransparency = 0.05
-    Box.BorderSizePixel = 0
-    Instance.new("UICorner", Box).CornerRadius = UDim.new(0,16)
-    local Stroke = Instance.new("UIStroke", Box)
-    Stroke.Thickness = 1.5
+    -- card หลัก — เล็ก กะทัดรัด
+    local Card = Instance.new("Frame", G)
+    Card.Size = UDim2.new(0,290,0,280)
+    Card.Position = UDim2.new(0.5,-145,0.5,-140)
+    Card.BackgroundColor3 = Color3.fromRGB(8,7,14)
+    Card.BorderSizePixel = 0
+    Instance.new("UICorner", Card).CornerRadius = UDim.new(0,14)
+    -- border สีรุ้ง
+    local CardStroke = Instance.new("UIStroke", Card)
+    CardStroke.Thickness = 1.2
+    CardStroke.Color = Color3.fromRGB(255,80,160)
 
-    -- โลโก้
-    local Img = Instance.new("ImageLabel", Box)
-    Img.Size = UDim2.new(0,80,0,80)
-    Img.Position = UDim2.new(0.5,-40,0,20)
-    Img.BackgroundTransparency = 1
-    Img.Image = "rbxassetid://117924028123190"
-
-    -- ชื่อ
-    local TT = Instance.new("TextLabel", Box)
-    TT.Size = UDim2.new(1,0,0,36)
-    TT.Position = UDim2.new(0,0,0,108)
-    TT.BackgroundTransparency = 1
-    TT.Text = "PIG HUB"
-    TT.TextColor3 = Color3.fromRGB(255,105,180)
-    TT.TextScaled = true
-    TT.Font = Enum.Font.GothamBold
-    Instance.new("UIGradient", TT).Color = ColorSequence.new({
-        ColorSequenceKeypoint.new(0, Color3.fromRGB(255,182,193)),
-        ColorSequenceKeypoint.new(0.5, Color3.fromRGB(255,105,180)),
-        ColorSequenceKeypoint.new(1, Color3.fromRGB(255,182,193)),
+    -- เส้นแบ่งบนสุด accent
+    local AccentBar = Instance.new("Frame", Card)
+    AccentBar.Size = UDim2.new(1,0,0,2)
+    AccentBar.Position = UDim2.new(0,0,0,0)
+    AccentBar.BorderSizePixel = 0
+    AccentBar.BackgroundColor3 = Color3.fromRGB(255,80,160)
+    Instance.new("UICorner", AccentBar).CornerRadius = UDim.new(0,14)
+    local AccentGrad = Instance.new("UIGradient", AccentBar)
+    AccentGrad.Color = ColorSequence.new({
+        ColorSequenceKeypoint.new(0, Color3.fromRGB(255,80,200)),
+        ColorSequenceKeypoint.new(0.5, Color3.fromRGB(120,80,255)),
+        ColorSequenceKeypoint.new(1, Color3.fromRGB(80,200,255)),
     })
 
-    -- ราคา
-    local PL = Instance.new("TextLabel", Box)
-    PL.Size = UDim2.new(1,-20,0,20)
-    PL.Position = UDim2.new(0,10,0,150)
-    PL.BackgroundTransparency = 1
-    PL.Text = "⏰10฿  📅35฿  ♾️65฿"
-    PL.TextColor3 = Color3.fromRGB(255,220,100)
-    PL.TextScaled = true
-    PL.Font = Enum.Font.Gotham
+    -- รูปโลโก้ เล็กลง
+    local Logo = Instance.new("ImageLabel", Card)
+    Logo.Size = UDim2.new(0,55,0,55)
+    Logo.Position = UDim2.new(0.5,-27.5,0,16)
+    Logo.BackgroundTransparency = 1
+    Logo.Image = "rbxassetid://117924028123190"
+
+    -- ชื่อ
+    local Title = Instance.new("TextLabel", Card)
+    Title.Size = UDim2.new(1,0,0,28)
+    Title.Position = UDim2.new(0,0,0,76)
+    Title.BackgroundTransparency = 1
+    Title.Text = "PIG HUB"
+    Title.Font = Enum.Font.GothamBold
+    Title.TextScaled = true
+    Title.TextColor3 = Color3.fromRGB(255,255,255)
+    local TG = Instance.new("UIGradient", Title)
+    TG.Color = ColorSequence.new({
+        ColorSequenceKeypoint.new(0, Color3.fromRGB(255,120,200)),
+        ColorSequenceKeypoint.new(1, Color3.fromRGB(180,100,255)),
+    })
+    TG.Rotation = 90
+
+    -- sub text
+    local Sub = Instance.new("TextLabel", Card)
+    Sub.Size = UDim2.new(1,-20,0,16)
+    Sub.Position = UDim2.new(0,10,0,108)
+    Sub.BackgroundTransparency = 1
+    Sub.Text = "1day · 10฿    1week · 35฿    forever · 65฿"
+    Sub.Font = Enum.Font.Gotham
+    Sub.TextScaled = true
+    Sub.TextColor3 = Color3.fromRGB(120,100,150)
 
     -- กล่อง input
-    local IF = Instance.new("Frame", Box)
-    IF.Size = UDim2.new(1,-30,0,44)
-    IF.Position = UDim2.new(0,15,0,182)
-    IF.BackgroundColor3 = Color3.fromRGB(20,15,30)
+    local IF = Instance.new("Frame", Card)
+    IF.Size = UDim2.new(1,-24,0,38)
+    IF.Position = UDim2.new(0,12,0,136)
+    IF.BackgroundColor3 = Color3.fromRGB(16,13,26)
     IF.BorderSizePixel = 0
-    Instance.new("UICorner", IF).CornerRadius = UDim.new(0,10)
+    Instance.new("UICorner", IF).CornerRadius = UDim.new(0,8)
     local IS = Instance.new("UIStroke", IF)
-    IS.Thickness = 1.5
+    IS.Thickness = 1
 
     local IB = Instance.new("TextBox", IF)
-    IB.Size = UDim2.new(1,-12,1,0)
-    IB.Position = UDim2.new(0,6,0,0)
+    IB.Size = UDim2.new(1,-14,1,0)
+    IB.Position = UDim2.new(0,7,0,0)
     IB.BackgroundTransparency = 1
-    IB.TextColor3 = Color3.fromRGB(255,255,255)
-    IB.PlaceholderText = "ใส่คีย์ที่นี่..."
-    IB.PlaceholderColor3 = Color3.fromRGB(120,100,140)
+    IB.TextColor3 = Color3.fromRGB(230,230,255)
+    IB.PlaceholderText = "enter key..."
+    IB.PlaceholderColor3 = Color3.fromRGB(80,70,100)
     IB.Text = "" IB.TextScaled = true
-    IB.Font = Enum.Font.GothamBold
+    IB.Font = Enum.Font.Code
     IB.ClearTextOnFocus = false IB.BorderSizePixel = 0
 
-    -- ปุ่ม confirm
-    local Btn = Instance.new("TextButton", Box)
-    Btn.Size = UDim2.new(1,-30,0,40)
-    Btn.Position = UDim2.new(0,15,0,240)
-    Btn.BackgroundColor3 = Color3.fromRGB(220,60,140)
+    -- ปุ่ม
+    local Btn = Instance.new("TextButton", Card)
+    Btn.Size = UDim2.new(1,-24,0,36)
+    Btn.Position = UDim2.new(0,12,0,188)
+    Btn.BackgroundColor3 = Color3.fromRGB(180,50,130)
     Btn.TextColor3 = Color3.fromRGB(255,255,255)
-    Btn.Text = "CONFIRM"
+    Btn.Text = "ENTER"
     Btn.TextScaled = true Btn.Font = Enum.Font.GothamBold
     Btn.BorderSizePixel = 0
-    Instance.new("UICorner", Btn).CornerRadius = UDim.new(0,12)
+    Instance.new("UICorner", Btn).CornerRadius = UDim.new(0,8)
+    local BtnGrad = Instance.new("UIGradient", Btn)
+    BtnGrad.Color = ColorSequence.new({
+        ColorSequenceKeypoint.new(0, Color3.fromRGB(220,60,160)),
+        ColorSequenceKeypoint.new(1, Color3.fromRGB(140,50,220)),
+    })
+    BtnGrad.Rotation = 90
 
-    -- สถานะ
-    local SL = Instance.new("TextLabel", Box)
-    SL.Size = UDim2.new(1,-20,0,26)
-    SL.Position = UDim2.new(0,10,0,290)
+    -- status
+    local SL = Instance.new("TextLabel", Card)
+    SL.Size = UDim2.new(1,-20,0,22)
+    SL.Position = UDim2.new(0,10,0,234)
     SL.BackgroundTransparency = 1
     SL.Text = "" SL.TextScaled = true SL.Font = Enum.Font.Gotham
 
-    -- ไล่สี stroke
+    -- animate border + input stroke
     task.spawn(function()
         local t = 0
         while G and G.Parent do
-            t = t + 0.015
-            local c = Color3.fromHSV(t%1, 0.7, 1)
-            Stroke.Color = c IS.Color = c
+            t = t + 0.012
+            local c = Color3.fromHSV(t%1, 0.75, 1)
+            CardStroke.Color = c
+            IS.Color = Color3.fromHSV((t+0.3)%1, 0.5, 0.8)
+            AccentGrad.Rotation = (t * 60) % 360
             task.wait(0.05)
         end
     end)
@@ -1664,6 +1688,8 @@ local function applyFPSBooster(mode)
             Lighting.FogStart = 1e10
             Lighting.Brightness = 1
             Lighting.GlobalShadows = true
+            Lighting.EnvironmentDiffuseScale = 0
+            Lighting.EnvironmentSpecularScale = 0
         end)
         
     elseif mode == 2 then
@@ -1723,7 +1749,7 @@ end
 
 -- ========== ฟังก์ชันแสดงเงิน ==========
 local function getRainbowColorForMoney(offset)
-    local time = tick() * 1.5
+    local time = tick() * 2.5
     return Color3.fromHSV((time + offset) % 1, 1, 1)
 end
 
@@ -1737,15 +1763,28 @@ local function formatMoneyWithRainbow(amount)
     else 
         text = string.format("$%d", amount)
     end
-    
     local rainbowText = ""
     for i = 1, #text do
-        local char = text:sub(i, i)
-        local color = getRainbowColorForMoney(i * 0.2)
-        local hex = string.format("#%02x%02x%02x", color.R*255, color.G*255, color.B*255)
-        rainbowText = rainbowText .. string.format('<font color="%s">%s</font>', hex, char)
+        local c = text:sub(i, i)
+        local col = getRainbowColorForMoney(i * 0.15)
+        local hex = string.format("#%02x%02x%02x", math.floor(col.R*255), math.floor(col.G*255), math.floor(col.B*255))
+        rainbowText = rainbowText .. string.format('<font color="%s"><b>%s</b></font>', hex, c)
     end
     return rainbowText
+end
+
+-- rainbow สำหรับตัวเลขทั่วไปใน UI
+local function rainbowNum(n, prefix)
+    prefix = prefix or ""
+    local text = prefix .. tostring(n)
+    local out = ""
+    for i = 1, #text do
+        local c = text:sub(i,i)
+        local col = Color3.fromHSV(((tick()*2)+(i*0.12))%1, 1, 1)
+        local hex = string.format("#%02x%02x%02x", math.floor(col.R*255), math.floor(col.G*255), math.floor(col.B*255))
+        out = out .. string.format('<font color="%s"><b>%s</b></font>', hex, c)
+    end
+    return out
 end
 
 local function HandMoney()
