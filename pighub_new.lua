@@ -156,8 +156,24 @@ local Window = WindUI:CreateWindow({
     HideSearchBar = true,
     ScrollBarEnabled = false,
     AccentColor = Color3.fromRGB(255, 105, 180),
-    User = {Enabled = false}
+    User = {
+        Enabled = true,
+        Name = "",
+        Image = "rbxassetid://117924028123190"
+    }
 })
+
+local LogoGui = Instance.new("ScreenGui", game:GetService("CoreGui"))
+LogoGui.Name = "PigHub_Logo"
+LogoGui.ResetOnSpawn = false
+LogoGui.DisplayOrder = 999
+local LogoBtn = Instance.new("ImageButton", LogoGui)
+LogoBtn.Size = UDim2.new(0, 50, 0, 50)
+LogoBtn.Position = UDim2.new(0, 15, 1, -65)
+LogoBtn.BackgroundTransparency = 1
+LogoBtn.Image = "rbxassetid://120437295686483"
+LogoBtn.Active = true
+LogoBtn.Draggable = true
 
 local function ToggleUI()
     if Window.Toggle then 
@@ -166,6 +182,7 @@ local function ToggleUI()
         Window.UI.Enabled = not Window.UI.Enabled 
     end
 end
+LogoBtn.MouseButton1Click:Connect(ToggleUI)
 UserInputService.InputBegan:Connect(function(i, gp) 
     if not gp and i.KeyCode == Enum.KeyCode.T then 
         ToggleUI() 
