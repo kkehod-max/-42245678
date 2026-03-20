@@ -156,50 +156,31 @@ local Window = WindUI:CreateWindow({
     HideSearchBar = true,
     ScrollBarEnabled = false,
     AccentColor = Color3.fromRGB(255, 105, 180),
-    User = {Enabled = false}
+    User = {
+        Enabled = true,
+        Name = "",
+        Image = "rbxassetid://117924028123190"
+    }
 })
 
--- ซ่อน OpenButton ของ WindUI (ปุ่ม PIG HUB ที่ลอยบนหน้าจอ)
+-- ซ่อน OpenButton (ปุ่ม PIG HUB ลอยบนหน้าจอ) ผ่าน WindUI API
 pcall(function() Window:EditOpenButton({Enabled = false}) end)
-
--- ลบ User section (ชื่อ/UserId มุมล่าง UI) — สแกน CoreGui ทุก ScreenGui
+-- ซ่อนข้อความชื่อผู้เล่นใต้ UI ผ่าน WindUI API
 task.spawn(function()
-    task.wait(1)
-    local CoreGui = game:GetService("CoreGui")
-    -- ลบทุก ScreenGui ที่ WindUI สร้าง ที่มี OpenButton
-    for _, gui in ipairs(CoreGui:GetChildren()) do
-        if gui:IsA("ScreenGui") then
-            for _, obj in ipairs(gui:GetDescendants()) do
-                -- ลบ User frame
-                if obj:IsA("Frame") and (obj.Name:lower():find("user") or obj.Name:lower():find("profile")) then
-                    pcall(function() obj.Visible = false obj.Size = UDim2.new(0,0,0,0) end)
-                end
-                -- ลบ OpenButton (ปุ่มที่ลอย)
-                if (obj:IsA("TextButton") or obj:IsA("Frame") or obj:IsA("ImageButton")) 
-                    and obj.Name:lower():find("open") then
-                    pcall(function() obj.Visible = false end)
-                end
-            end
-        end
-    end
-    -- ลบซ้ำด้วย RunService เผื่อ WindUI recreate
-    local conn
-    conn = game:GetService("RunService").Heartbeat:Connect(function()
-        pcall(function()
-            for _, gui in ipairs(CoreGui:GetChildren()) do
-                if gui:IsA("ScreenGui") then
-                    for _, obj in ipairs(gui:GetDescendants()) do
-                        if obj:IsA("Frame") and (obj.Name:lower():find("user") or obj.Name:lower():find("profile")) then
-                            if obj.Visible then obj.Visible = false end
-                        end
-                        if (obj:IsA("TextButton") or obj:IsA("Frame") or obj:IsA("ImageButton"))
-                            and obj.Name:lower():find("open") then
-                            if obj.Visible then obj.Visible = false end
-                        end
+    task.wait(0.3)
+    pcall(function()
+        -- หา TextLabel ที่แสดง UserId/ชื่อใน SideBar แล้วซ่อน
+        if Window and Window.SideBar then
+            for _, obj in ipairs(Window.SideBar:GetDescendants()) do
+                if obj:IsA("TextLabel") then
+                    local t = obj.Text or ""
+                    if t:find(tostring(LocalPlayer.UserId)) or t == LocalPlayer.Name or t == LocalPlayer.DisplayName then
+                        obj.Text = ""
+                        obj.Visible = false
                     end
                 end
             end
-        end)
+        end
     end)
 end)
 
@@ -264,7 +245,7 @@ local function toggleSitSystem(state)
     end
 end
 
--- ========== ระบบวิ่งเร็ว (แบบ god2.txt) ==========
+-- ========== ระบบวิ่งเร็ว ==========
 local walkSpeedEnabled = false
 local speedValue = 0.05
 local moveConnection = nil
@@ -299,7 +280,7 @@ if LocalPlayer.Character then
     setupWalkSpeed(LocalPlayer.Character)
 end
 
--- ========== ระบบ ANTI LOOK (แบบ god2.txt) ==========
+-- ========== ระบบ ANTI LOOK ==========
 getgenv().AntiLookEnabled = false
 getgenv().AntiLookStrength = 1500
 getgenv().AntiLookSpeed = 1500
@@ -560,7 +541,7 @@ local function createNetwork()
     return Net
 end
 
--- ========== ระบบ SILENT AIM (จาก god2) ==========
+-- ========== ระบบ SILENT AIM ==========
 local SilentAimEnabled = false
 local FOVRadius = 200
 local CurrentTarget = nil
@@ -832,7 +813,7 @@ pcall(function()
     end)
 end)
 
--- ========== ระบบ GUN MOD (จาก god2) ==========
+-- ========== ระบบ GUN MOD ==========
 local GunsFolder = ReplicatedStorage:WaitForChild("Items"):WaitForChild("gun")
 local MeleeFolder2 = ReplicatedStorage:WaitForChild("Items"):WaitForChild("melee")
 
@@ -1700,7 +1681,7 @@ PlayerTab:Section({Title = "ANTI LOOK"})
 
 local AntiLookToggle = PlayerTab:Toggle({
     Title = "Anti Look",
-    Desc = "ป้องกันล็อคเป้า (แบบ god2.txt)",
+    Desc = "ป้องกันล็อคเป้า",
     Default = false,
     Callback = function(state)
         toggleAntiLook(state)
@@ -2036,6 +2017,94 @@ GunModTab:Toggle({
     end
 })
 
+-- ========== ระบบ PIGHUB EFFECT (ลูกบอลหมุนรอบตัว) ==========
+local PigHubEffectEnabled = false
+local effectBalls = {}
+local effectConnection = nil
+local BALL_COUNT = 8
+local ORBIT_RADIUS = 5
+local ORBIT_SPEED = 2.5
+local BALL_SIZE = Vector3.new(0.35, 0.35, 0.35)
+local effectColors = {
+    Color3.fromRGB(255,0,100),
+    Color3.fromRGB(255,100,0),
+    Color3.fromRGB(255,255,0),
+    Color3.fromRGB(0,255,100),
+    Color3.fromRGB(0,150,255),
+    Color3.fromRGB(150,0,255),
+    Color3.fromRGB(255,0,200),
+    Color3.fromRGB(255,255,255),
+}
+
+local function createEffectBalls()
+    for _, b in ipairs(effectBalls) do pcall(function() b:Destroy() end) end
+    effectBalls = {}
+    for i = 1, BALL_COUNT do
+        local ball = Instance.new("Part")
+        ball.Size = BALL_SIZE
+        ball.Shape = Enum.PartType.Ball
+        ball.Anchored = true
+        ball.CanCollide = false
+        ball.CastShadow = false
+        ball.Material = Enum.Material.Neon
+        ball.Color = effectColors[i]
+        ball.Name = "PigHubBall_" .. i
+        ball.Parent = workspace
+        table.insert(effectBalls, ball)
+    end
+end
+
+local function removeEffectBalls()
+    if effectConnection then effectConnection:Disconnect() effectConnection = nil end
+    for _, b in ipairs(effectBalls) do pcall(function() b:Destroy() end) end
+    effectBalls = {}
+end
+
+local function startEffect()
+    createEffectBalls()
+    local t0 = tick()
+    effectConnection = RunService.RenderStepped:Connect(function()
+        local char = LocalPlayer.Character
+        if not char then return end
+        local hrp = char:FindFirstChild("HumanoidRootPart")
+        if not hrp then return end
+        local t = tick() - t0
+        local colorT = (t * 0.5) % 1
+        for i, ball in ipairs(effectBalls) do
+            if not ball or not ball.Parent then continue end
+            local angle = (math.pi * 2 / BALL_COUNT) * (i - 1) + (t * ORBIT_SPEED)
+            -- วงโคจรรูปวงรีเอียง 3 มิติ
+            local x = math.cos(angle) * ORBIT_RADIUS
+            local y = math.sin(angle * 0.7) * 1.8
+            local z = math.sin(angle) * ORBIT_RADIUS
+            ball.Position = hrp.Position + Vector3.new(x, y + 1, z)
+            -- ไล่สีรุ้งแต่ละลูก
+            ball.Color = Color3.fromHSV(((colorT + (i / BALL_COUNT)) % 1), 1, 1)
+            -- ขนาดเต้นตามเวลา
+            local pulse = 0.25 + math.abs(math.sin(t * 3 + i)) * 0.15
+            ball.Size = Vector3.new(pulse, pulse, pulse)
+        end
+    end)
+end
+
+local function togglePigHubEffect(state)
+    PigHubEffectEnabled = state
+    if state then
+        startEffect()
+    else
+        removeEffectBalls()
+    end
+end
+
+LocalPlayer.CharacterAdded:Connect(function()
+    if PigHubEffectEnabled then
+        task.wait(0.5)
+        removeEffectBalls()
+        startEffect()
+    end
+end)
+
+
 -- ========== CUSTOM TAB ==========
 CustomTab:Section({Title = "FPS BOOSTER"})
 
@@ -2064,6 +2133,38 @@ CustomTab:Dropdown({
         if fpsBoosterEnabled then
             applyFPSBooster(fpsBoosterMode)
         end
+    end
+})
+
+CustomTab:Divider()
+CustomTab:Section({Title = "PIGHUB EFFECT"})
+
+CustomTab:Toggle({
+    Title = "PIGHUB Effect",
+    Desc = "ลูกบอลสีรุ้งหมุนรอบตัว",
+    Default = false,
+    Callback = function(state)
+        togglePigHubEffect(state)
+    end
+})
+
+CustomTab:Slider({
+    Title = "ขนาดวงโคจร",
+    Desc = "ระยะห่างของลูกบอลจากตัวละคร",
+    Step = 0.5,
+    Value = {Min = 2, Max = 12, Default = 5},
+    Callback = function(v)
+        ORBIT_RADIUS = v
+    end
+})
+
+CustomTab:Slider({
+    Title = "ความเร็วหมุน",
+    Desc = "ความเร็วในการหมุนวงโคจร",
+    Step = 0.5,
+    Value = {Min = 0.5, Max = 8, Default = 2.5},
+    Callback = function(v)
+        ORBIT_SPEED = v
     end
 })
 
