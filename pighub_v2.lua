@@ -765,56 +765,41 @@ end
 
 -- ========== ระบบ ANTI LOOK (แบบ god2) ==========
 getgenv().AntiLookEnabled = false
-getgenv().SkyAmount = 1500
 
 local AntiLookConnection = nil
-local AntiLookMoveConn = nil
-local _antiLookOriginalCFrame = nil
+local _alRealCF = nil
 
 local function setupAntiLook()
-    if AntiLookConnection then AntiLookConnection:Disconnect() end
-    if AntiLookMoveConn then AntiLookMoveConn:Disconnect() end
+    if AntiLookConnection then AntiLookConnection:Disconnect() AntiLookConnection = nil end
 
+    -- Heartbeat: ส่งการสั่นไป server
     AntiLookConnection = RunService.Heartbeat:Connect(function()
         if not getgenv().AntiLookEnabled then return end
         local char = LocalPlayer.Character
         if not char then return end
         local Root = char:FindFirstChild("HumanoidRootPart")
         if not Root then return end
-        local hum = char:FindFirstChild("Humanoid")
-        if not hum then return end
 
-        -- บันทึก CFrame จริงของเรา
-        local realCF = Root.CFrame
+        -- บันทึก CFrame จริง
+        _alRealCF = Root.CFrame
 
-        -- สั่นแรงๆ ฝั่ง server เห็น (เปลี่ยน CFrame ไปมาเร็วมาก)
+        -- สั่นฝั่ง server เห็น
         local t = tick()
-        local jx = math.sin(t * 80) * 6 + math.random(-3, 3)
-        local jz = math.cos(t * 75) * 6 + math.random(-3, 3)
-        local jy = math.sin(t * 60) * 2
-
-        Root.CFrame = realCF * CFrame.new(jx, jy, jz)
-        task.wait()
-
-        -- คืน CFrame เดิมให้เราอยู่ที่เดิม (เราไม่เห็น)
-        if Root and Root.Parent then
-            Root.CFrame = realCF
-        end
+        local jx = math.sin(t * 85) * 5 + math.random(-2, 2)
+        local jz = math.cos(t * 78) * 5 + math.random(-2, 2)
+        local jy = math.sin(t * 55) * 1.5
+        Root.CFrame = _alRealCF * CFrame.new(jx, jy, jz)
     end)
 
-    -- เมื่อเดินให้ระบบยังทำงานได้ปกติ ไม่ค้าง
-    AntiLookMoveConn = RunService.RenderStepped:Connect(function()
+    -- RenderStepped: คืน CFrame ก่อน render ฝั่งเรา เราเลยไม่เห็นสั่น
+    RunService.RenderStepped:Connect(function()
         if not getgenv().AntiLookEnabled then return end
+        if not _alRealCF then return end
         local char = LocalPlayer.Character
         if not char then return end
         local Root = char:FindFirstChild("HumanoidRootPart")
         if not Root then return end
-        -- เก็บ velocity เดิมไว้ไม่ให้กระเด็น
-        local vel = Root.AssemblyLinearVelocity
-        task.wait()
-        if Root and Root.Parent then
-            Root.AssemblyLinearVelocity = vel
-        end
+        Root.CFrame = _alRealCF
     end)
 end
 
@@ -824,7 +809,7 @@ local function toggleAntiLook(state)
         setupAntiLook()
     else
         if AntiLookConnection then AntiLookConnection:Disconnect() AntiLookConnection = nil end
-        if AntiLookMoveConn then AntiLookMoveConn:Disconnect() AntiLookMoveConn = nil end
+        _alRealCF = nil
     end
 end
 
