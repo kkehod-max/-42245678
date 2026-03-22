@@ -767,39 +767,41 @@ end
 getgenv().AntiLookEnabled = false
 
 local AntiLookConnection = nil
+local AntiLookRenderConn = nil
 local _alRealCF = nil
 
 local function setupAntiLook()
     if AntiLookConnection then AntiLookConnection:Disconnect() AntiLookConnection = nil end
+    if AntiLookRenderConn then AntiLookRenderConn:Disconnect() AntiLookRenderConn = nil end
 
-    -- Heartbeat: ส่งการสั่นไป server
+    -- Heartbeat: บันทึก CFrame จริง แล้วส่งสั่นแรงไป server
     AntiLookConnection = RunService.Heartbeat:Connect(function()
         if not getgenv().AntiLookEnabled then return end
         local char = LocalPlayer.Character
         if not char then return end
         local Root = char:FindFirstChild("HumanoidRootPart")
         if not Root then return end
-
-        -- บันทึก CFrame จริง
         _alRealCF = Root.CFrame
-
-        -- สั่นฝั่ง server เห็น
         local t = tick()
-        local jx = math.sin(t * 85) * 5 + math.random(-2, 2)
-        local jz = math.cos(t * 78) * 5 + math.random(-2, 2)
-        local jy = math.sin(t * 55) * 1.5
+        local jx = math.sin(t * 85) * 20 + math.random(-10, 10)
+        local jz = math.cos(t * 78) * 20 + math.random(-10, 10)
+        local jy = math.sin(t * 55) * 5
         Root.CFrame = _alRealCF * CFrame.new(jx, jy, jz)
     end)
 
-    -- RenderStepped: คืน CFrame ก่อน render ฝั่งเรา เราเลยไม่เห็นสั่น
-    RunService.RenderStepped:Connect(function()
+    -- RenderStepped: คืน CFrame แบบสั่นนิดเดียว (0.2 สตัด) ก่อน render
+    -- กล้องไม่แตะเลย ปกติ 100%
+    AntiLookRenderConn = RunService.RenderStepped:Connect(function()
         if not getgenv().AntiLookEnabled then return end
         if not _alRealCF then return end
         local char = LocalPlayer.Character
         if not char then return end
         local Root = char:FindFirstChild("HumanoidRootPart")
         if not Root then return end
-        Root.CFrame = _alRealCF
+        local t = tick()
+        local sx = math.sin(t * 85) * 0.2
+        local sz = math.cos(t * 78) * 0.2
+        Root.CFrame = _alRealCF * CFrame.new(sx, 0, sz)
     end)
 end
 
@@ -809,6 +811,7 @@ local function toggleAntiLook(state)
         setupAntiLook()
     else
         if AntiLookConnection then AntiLookConnection:Disconnect() AntiLookConnection = nil end
+        if AntiLookRenderConn then AntiLookRenderConn:Disconnect() AntiLookRenderConn = nil end
         _alRealCF = nil
     end
 end
